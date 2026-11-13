@@ -26,3 +26,15 @@ Marco de trabajo para cualquier agente que opere este vault.
 ## Convención de numeración
 
 Carpetas `00` a `09` por área; dentro de cada una, notas `X.1`, `X.2`, ... y su MOC `X.0`.
+
+## Sesiones desde el vault (patrón Home Repo)
+
+Las sesiones de agente arrancan en este vault, no dentro de los repos de código. Un clon por repo en disco; worktree por feature cuando haya trabajo en paralelo. Los punteros operativos están en [[07 - Proyectos/07.0 - Proyectos (MOC)|07 - Proyectos]] y resumidos abajo.
+
+## Otros repos
+
+- **exact** (runtime core, área 1): ~/dev/exact. Clonar de https://github.com/expo/exact si falta. Leer `docs/start-here.md` antes de cambiar algo; pre-1.0, cambia a diario.
+- **exact-templates** (apps para instanciar): ~/dev/exact-templates. Clonar de https://github.com/expo/exact-templates. No se edita: se instancia con `bun new.mjs <template> ~/app --name N --bundle-id com.example.n`.
+- **llp** (método, área 2): ~/dev/llp. Clonar de https://github.com/ccheever/llp. Fuente de las skills que se copian a `08 - Skills`; también trae `ref-check`.
+
+Rutas ajustables; lo fijo es que el puntero siempre nombra ruta, origen de clon y hint.
