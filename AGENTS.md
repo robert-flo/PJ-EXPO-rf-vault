@@ -22,6 +22,7 @@ Marco de trabajo para cualquier agente que opere este vault.
 - `LLP 0000` es el documento raíz del programa. Cada decisión duradera de aprendizaje o diseño se numera (`LLP 0001`, ...).
 - El código que nazca en repos aparte referencia al vault con `@ref LLP NNNN#anchor`.
 - Validar con `make llp-check`.
+- Verificar toolchain de la máquina: `make doctor` (instala lo que falta con pacman o mise).
 
 ## Convención de numeración
 
