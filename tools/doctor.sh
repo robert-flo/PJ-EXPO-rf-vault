@@ -90,8 +90,7 @@ fin=0
 for p in curl unzip git gh ; do cmd "$p" || { printf '  FALTA   %s\n' "$p" ; fin=$((fin+1)) ; } ; done
 if chrom ; then printf '  OK      navegador (%s)\n' "$BROWSER_BIN"
 else printf '  FALTA   navegador\n' ; fin=$((fin+1)) ; fi
-( cmd cc || cmd gcc || cmd clang ) || { printf '  FALTA   compilador C (cc/gcc)
-' ; fin=$((fin+1)) ; }
+( cmd cc || cmd gcc || cmd clang ) || { printf '  FALTA   compilador C (cc/gcc)' ; fin=$((fin+1)) ; }
 rustup_ok || { printf '  FALTA   rustup\n' ; fin=$((fin+1)) ; }
 chain_ok || { printf '  FALTA   rust %s\n' "$RUSTV" ; fin=$((fin+1)) ; }
 bun_ok || { printf '  FALTA   bun\n' ; fin=$((fin+1)) ; }
