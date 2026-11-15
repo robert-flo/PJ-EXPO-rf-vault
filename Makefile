@@ -3,7 +3,7 @@
 VAULT := $(CURDIR)
 DIA := $(shell date +%F)
 
-.PHONY: dia nota llp-check abrir sync doctor
+.PHONY: dia nota llp-check abrir sync doctor clone
 
 dia:
 > @mkdir -p "09 - Diario de Aprendizaje"
@@ -25,6 +25,9 @@ llp-check:
 
 doctor:
 > @bash tools/doctor.sh
+
+clone:
+> @bash tools/clone.sh
 
 abrir:
 > @xdg-open "obsidian://open?path=$(VAULT)" || open "obsidian://open?path=$(VAULT)"

@@ -23,6 +23,7 @@ Marco de trabajo para cualquier agente que opere este vault.
 - El código que nazca en repos aparte referencia al vault con `@ref LLP NNNN#anchor`.
 - Validar con `make llp-check`.
 - Verificar toolchain de la máquina: `make doctor` (instala lo que falta con pacman o mise).
+- Clonar los repos de pruebas dentro del vault: `make clone` (lee tools/repos.list, baja a proyectos/, carpeta ignorada por git y Obsidian).
 
 ## Convención de numeración
 

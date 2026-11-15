@@ -1,0 +1,3 @@
+# Repos de pruebas del programa (owner/repo o URL completa).
+# make clone los baja a proyectos/ (carpeta ignorada por git y por Obsidian).
+robert-flo/PJ-EXPO-rf-contador
