@@ -12,7 +12,13 @@ RUSTV=1.97.0
 exact_dir="${EXACT:-proyectos/exact}"
 
 cmd(){ command -v "$1" >/dev/null 2>&1 ; }
-chrom(){ cmd chromium || cmd chromium-browser || cmd google-chrome-stable || cmd brave ; }
+# navegador: se acepta cualquiera; google-chrome primero (tu equipo usa Chrome)
+chrom(){
+  for b in google-chrome-stable google-chrome brave chromium chromium-browser ; do
+    cmd "$b" && { BROWSER_BIN="$b" ; return 0 ; }
+  done
+  return 1
+}
 rustup_ok(){ cmd rustup || [ -x "$HOME/.cargo/bin/rustup" ] ; }
 bun_ok(){ cmd bun || [ -x "$HOME/.bun/bin/bun" ] ; }
 chain_ok(){ rustup toolchain list 2>/dev/null | grep -q "$RUSTV" ; }
@@ -21,10 +27,10 @@ checkout_ok(){ [ -f "$exact_dir/scripts/app-cli.mjs" ] ; }
 echo "== Diagnóstico =="
 PKGS=()
 for p in curl unzip git gh ; do cmd "$p" || PKGS+=("$p") ; done
-if chrom ; then : ; else PKGS+=("chromium") ; fi
+if chrom ; then : ; else PKGS+=("google-chrome") ; fi
 if ! ( cmd cc || cmd gcc || cmd clang ) ; then PKGS+=("base-devel") ; fi
 if [ ${#PKGS[@]} -gt 0 ] ; then printf '  FALTA   pacman: %s\n' "${PKGS[*]}"
-else printf '  OK      curl, unzip, git, gh, chromium\n' ; fi
+else printf '  OK      curl, unzip, git, gh, navegador (%s)\n' "${BROWSER_BIN:-chromium}" ; fi
 if rustup_ok ; then printf '  OK      rustup\n' ; else printf '  FALTA   rustup\n' ; fi
 if chain_ok ; then printf '  OK      rust %s\n' "$RUSTV" ; else printf '  FALTA   rust %s\n' "$RUSTV" ; fi
 if bun_ok ; then printf '  OK      bun\n' ; else printf '  FALTA   bun\n' ; fi
