@@ -40,3 +40,7 @@ Las sesiones de agente arrancan en este vault, no dentro de los repos de código
 - **llp** (método, área 2): ~/dev/llp. Clonar de https://github.com/ccheever/llp. Fuente de las skills que se copian a `08 - Skills`; también trae `ref-check`.
 
 Rutas ajustables; lo fijo es que el puntero siempre nombra ruta, origen de clon y hint.
+
+## Convenciones de los micro-proyectos
+
+El código de los repos de proyectos se comenta para enseñar y el README de cada proyecto lleva un mapa de archivos. Ambas convenciones viven en [LLP 0001](llp/current/LLP%200001%20-%20Convenciones%20de%20los%20micro-proyectos.md); desde el código se citan con `@ref LLP 0001#ancla`.
