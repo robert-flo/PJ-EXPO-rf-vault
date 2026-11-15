@@ -88,7 +88,8 @@ fi
 echo "== Verificación final =="
 fin=0
 for p in curl unzip git gh ; do cmd "$p" || { printf '  FALTA   %s\n' "$p" ; fin=$((fin+1)) ; } ; done
-if chrom ; then : ; else printf '  FALTA   chromium\n' ; fin=$((fin+1)) ; fi
+if chrom ; then printf '  OK      navegador (%s)\n' "$BROWSER_BIN"
+else printf '  FALTA   navegador\n' ; fin=$((fin+1)) ; fi
 ( cmd cc || cmd gcc || cmd clang ) || { printf '  FALTA   compilador C (cc/gcc)
 ' ; fin=$((fin+1)) ; }
 rustup_ok || { printf '  FALTA   rustup\n' ; fin=$((fin+1)) ; }
