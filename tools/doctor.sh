@@ -1,85 +1,95 @@
 #!/usr/bin/env bash
-# doctor: verifica el toolchain del programa y lo que falta, lo instala.
-# Ruta: pacman para lo del sistema (Omarchy/Arch), mise para Bun.
-# Con DOCTOR_DRY=1 solo reporta, no instala.
-set -uo pipefail
+# make doctor — verifica, informa y RESUELVE el toolchain del programa.
+# Corre `make doctor` otra vez hasta que termine con TODO LISTO.
+# Lo que no necesita sudo se arregla solo (rustup, bun, checkout y setup de
+# exact); lo de pacman necesita tu contraseña, así que córrelo en tu terminal.
+set -u
+cd "$(dirname "$0")/.."
+export PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH"
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
-DRY="${DOCTOR_DRY:-}"
-missing_pacman=()
-notes=()
+RUSTV=1.97.0
+exact_dir="${EXACT:-proyectos/exact}"
 
-have() { command -v "$1" >/dev/null 2>&1; }
+cmd(){ command -v "$1" >/dev/null 2>&1 ; }
+chrom(){ cmd chromium || cmd chromium-browser || cmd google-chrome-stable || cmd brave ; }
+rustup_ok(){ cmd rustup || [ -x "$HOME/.cargo/bin/rustup" ] ; }
+bun_ok(){ cmd bun || [ -x "$HOME/.bun/bin/bun" ] ; }
+chain_ok(){ rustup toolchain list 2>/dev/null | grep -q "$RUSTV" ; }
+checkout_ok(){ [ -f "$exact_dir/scripts/app-cli.mjs" ] ; }
 
-install_pacman() {
-  if [ -n "$DRY" ]; then
-    echo "  [dry] sudo pacman -S --needed $*"
+echo "== Diagnóstico =="
+PKGS=()
+for p in curl unzip git gh ; do cmd "$p" || PKGS+=("$p") ; done
+if chrom ; then : ; else PKGS+=("chromium") ; fi
+if ! ( cmd cc || cmd gcc || cmd clang ) ; then PKGS+=("base-devel") ; fi
+if [ ${#PKGS[@]} -gt 0 ] ; then printf '  FALTA   pacman: %s\n' "${PKGS[*]}"
+else printf '  OK      curl, unzip, git, gh, chromium\n' ; fi
+if rustup_ok ; then printf '  OK      rustup\n' ; else printf '  FALTA   rustup\n' ; fi
+if chain_ok ; then printf '  OK      rust %s\n' "$RUSTV" ; else printf '  FALTA   rust %s\n' "$RUSTV" ; fi
+if bun_ok ; then printf '  OK      bun\n' ; else printf '  FALTA   bun\n' ; fi
+if checkout_ok ; then printf '  OK      checkout exact (%s)\n' "$exact_dir"
+else printf '  FALTA   checkout exact (%s)\n' "$exact_dir" ; fi
+if gh auth status >/dev/null 2>&1 ; then printf '  OK      gh autenticado\n'
+else printf '  FALTA   gh autenticado (se arregla con: gh auth login)\n' ; fi
+
+echo "== Resolviendo lo que falta =="
+
+if [ ${#PKGS[@]} -gt 0 ] ; then
+  if sudo pacman -S --needed --noconfirm "${PKGS[@]}" ; then
+    printf '  instalado con pacman: %s\n' "${PKGS[*]}"
   else
-    sudo pacman -S --needed "$@"
+    printf '  no pude usar sudo: corre `make doctor` en tu terminal (pide tu contraseña)\n'
   fi
-}
-
-# Base del sistema
-for t in git gh unzip; do
-  have "$t" || missing_pacman+=("$t")
-done
-
-# Navegador para las pruebas (cualquiera sirve; exact apunta con CHROME= si hay varios)
-BROWSER=""
-for b in google-chrome-stable google-chrome chromium chromium-browser brave; do
-  if have "$b"; then BROWSER="$b"; break; fi
-done
-if [ -z "$BROWSER" ]; then
-  missing_pacman+=("chromium")
 fi
 
-# rustup: la toolchain exacta (1.97.0) la baja exact solo vía rust-toolchain.toml
-if ! have rustup; then
-  missing_pacman+=("rustup")
-  notes+=("rustup recién instalado: corre 'rustup default stable' una vez")
+if ! rustup_ok ; then
+  # limpieza: un enlace simbólico roto de una instalación anterior bloquea al instalador
+  for d in "$HOME/.cargo" "$HOME/.rustup" ; do
+    [ -L "$d" ] && [ ! -e "$d" ] && rm "$d" && printf '  limpiado enlace roto: %s\n' "$d"
+  done
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUSTV" \
+    && printf '  rustup instalado (nuevas terminales ya lo tienen en PATH)\n'
+fi
+if rustup_ok && ! chain_ok ; then
+  rustup toolchain install "$RUSTV" --profile minimal && printf '  rust %s instalado\n' "$RUSTV"
 fi
 
-if [ ${#missing_pacman[@]} -gt 0 ]; then
-  echo "Falta (pacman): ${missing_pacman[*]}"
-  install_pacman "${missing_pacman[@]}"
+if ! bun_ok ; then
+  curl -fsSL https://bun.sh/install | bash && printf '  bun instalado en ~/.bun\n'
+fi
+
+if ! checkout_ok ; then
+  mkdir -p proyectos
+  git clone --depth 1 https://github.com/expo/exact "$exact_dir" \
+    && printf '  clonado: %s\n' "$exact_dir"
+fi
+if checkout_ok ; then
+  git -C "$exact_dir" pull --ff-only 2>/dev/null || true
+  if bun_ok ; then BUN="$(command -v bun || echo "$HOME/.bun/bin/bun")" ; fi
+  printf '  setup de exact (la primera vez tarda varios minutos)...\n'
+  if (cd "$exact_dir" && "$BUN" scripts/exact.mjs setup) ; then
+    printf '  setup de exact: listo\n'
+  else
+    printf '  setup de exact: quedó a medias; vuelve a correr `make doctor` para reintentarlo\n'
+  fi
+fi
+
+echo "== Verificación final =="
+fin=0
+for p in curl unzip git gh ; do cmd "$p" || { printf '  FALTA   %s\n' "$p" ; fin=$((fin+1)) ; } ; done
+if chrom ; then : ; else printf '  FALTA   chromium\n' ; fin=$((fin+1)) ; fi
+( cmd cc || cmd gcc || cmd clang ) || { printf '  FALTA   compilador C (cc/gcc)
+' ; fin=$((fin+1)) ; }
+rustup_ok || { printf '  FALTA   rustup\n' ; fin=$((fin+1)) ; }
+chain_ok || { printf '  FALTA   rust %s\n' "$RUSTV" ; fin=$((fin+1)) ; }
+bun_ok || { printf '  FALTA   bun\n' ; fin=$((fin+1)) ; }
+checkout_ok || { printf '  FALTA   checkout exact (%s)\n' "$exact_dir" ; fin=$((fin+1)) ; }
+
+if [ "$fin" -eq 0 ] ; then
+  echo "TODO LISTO: toolchain completo."
+  exit 0
 else
-  echo "Sistema al día: git, gh, unzip y navegador presentes."
-fi
-
-# bun: por mise (bun no está en los repos de Arch). mise está en pacman;
-# si pacman no lo tiene, cae al instalador oficial de mise.run
-if ! have bun; then
-  if ! have mise; then
-    if [ -n "$DRY" ]; then
-      echo "  [dry] mise: sudo pacman -S --needed mise (o curl -fsSL https://mise.run | sh)"
-    elif sudo pacman -S --needed --noconfirm mise >/dev/null 2>&1; then
-      echo "mise instalado (pacman)"
-    else
-      echo "mise no está en pacman; instalando con mise.run..."
-      curl -fsSL https://mise.run | sh
-      export PATH="$HOME/.local/bin:$PATH"
-    fi
-    notes+=("mise recién instalado: corre 'mise use -g bun@1.4.2'")
-  else
-    notes+=("falta bun: corre 'mise use -g bun@1.4.2'")
-  fi
-fi
-
-if [ ${#notes[@]} -gt 0 ]; then
-  echo "Pasos manuales una sola vez:"
-  for n in "${notes[@]}"; do echo "  - $n"; done
-fi
-
-# Reporte final
-echo
-echo "Estado:"
-have git    && echo "  git:       $(git --version | awk '{print $3}')"    || echo "  git:       FALTA"
-have gh     && echo "  gh:        $(gh --version | head -1 | awk '{print $3}')" || echo "  gh:        FALTA"
-have bun    && echo "  bun:       $(bun --version)"                        || echo "  bun:       FALTA (mise use -g bun@1.4.2)"
-have rustup && echo "  rustup:    $(rustup --version 2>/dev/null | head -1)" || echo "  rustup:    FALTA"
-if [ -n "$BROWSER" ]; then echo "  navegador: $BROWSER"; else echo "  navegador: FALTA (chromium)"; fi
-
-# Todo presente → siguiente paso
-if have git && have gh && have bun && have rustup && [ -n "$BROWSER" ]; then
-  echo
-  echo "Toolchain listo. Siguiente paso: cd ~/dev/exact && bun scripts/exact.mjs setup"
+  echo "Quedan $fin pendientes. Vuelve a correr: make doctor"
+  exit 1
 fi
