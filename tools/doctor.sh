@@ -64,6 +64,10 @@ if ! checkout_ok ; then
   git clone --depth 1 https://github.com/expo/exact "$exact_dir" \
     && printf '  clonado: %s\n' "$exact_dir"
 fi
+# los repos del programa (tools/repos.list) entran por make clone: es idempotente
+# y esa lista es la única fuente de verdad de qué repos se traen.
+bash tools/clone.sh 2>&1 | tail -2 || printf '  make clone: falló; se reintenta en la próxima corrida\n'
+
 if checkout_ok ; then
   git -C "$exact_dir" pull --ff-only 2>/dev/null || true
   if bun_ok ; then BUN="$(command -v bun || echo "$HOME/.bun/bin/bun")" ; fi
